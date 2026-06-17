@@ -40,4 +40,6 @@ const EXCLUDED_TERMS = [
   'take 1',
   'take one',
   'up to',
+  'per',
+  'for other',
 ];
