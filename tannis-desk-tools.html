@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanni's Desk Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  /* Purple palette (lighter purple from the med identifier tool) */
+  --purple:#6b4ab0;
+  --purple2:#8b6fcc;
+  --purple3:#a98fdc;
+  --purple4:#c4adec;
+  --purple-pale:#f3f0ff;
+  --purple-mid:#ddd4f8;
+  --purple-deep:#3a2070;
+
+  /* Dark sidebar */
+  --sidebar-bg:#1a1228;
+  --sidebar-border:rgba(255,255,255,.08);
+  --sidebar-text:rgba(255,255,255,.75);
+  --sidebar-text-dim:rgba(255,255,255,.38);
+  --sidebar-hover:rgba(139,111,204,.18);
+  --sidebar-active:rgba(139,111,204,.22);
+
+  /* Main content */
+  --canvas:#f5f3ff;
+  --card-bg:#ffffff;
+  --card-border:#e8e3f8;
+  --card-hover-border:#a98fdc;
+  --ink:#160e2c;
+  --ink-mid:#3d2f6b;
+  --ink-soft:#7a6fa0;
+  --border:#ddd4f8;
+
+  /* Category tag colors */
+  --tag-stk-bg:#ede8fb;  --tag-stk:#6b4ab0;
+  --tag-sep-bg:#e8f3fb;  --tag-sep:#1d6fa4;
+  --tag-bh-bg:#fdf0e8;   --tag-bh:#a05a1a;
+  --tag-ref-bg:#e8fbf0;  --tag-ref:#1a7a4a;
+
+  --font:'DM Sans',sans-serif;
+  --mono:'DM Mono',monospace;
+  --radius:10px;
+  --sidebar-w:240px;
+  --header-h:52px;
+}
+
+html,body{height:100%;font-family:var(--font);-webkit-font-smoothing:antialiased;}
+body{background:var(--canvas);color:var(--ink);font-size:15px;line-height:1.6;overflow:hidden;}
+
+/* ── LAYOUT ── */
+.layout{display:flex;height:100vh;overflow:hidden;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:var(--sidebar-bg);
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid var(--sidebar-border);
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.12) transparent;
+  z-index:10;
+  transition:width .25s ease, min-width .25s ease;
+}
+.sidebar.collapsed{width:0;min-width:0;overflow:hidden;}
+
+/* Brand */
+.brand{
+  padding:18px 20px 16px;
+  border-bottom:1px solid var(--sidebar-border);
+  flex-shrink:0;
+}
+.brand-name{
+  font-size:15px;font-weight:700;color:#fff;letter-spacing:-.2px;
+  display:flex;align-items:center;gap:8px;
+}
+.brand-icon{
+  width:28px;height:28px;border-radius:7px;
+  background:linear-gradient(135deg,var(--purple),var(--purple3));
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.brand-icon i{font-size:15px;color:#fff;}
+.brand-sub{font-size:11px;color:var(--sidebar-text-dim);margin-top:3px;letter-spacing:.2px;}
+
+/* Nav sections */
+.nav-section{padding:8px 0 4px;}
+.nav-section-label{
+  padding:6px 16px 4px;
+  font-size:10.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--sidebar-text-dim);
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 14px 7px 16px;
+  cursor:pointer;border-radius:5px;margin:1px 6px;
+  color:var(--sidebar-text);font-size:13.5px;
+  transition:background .15s, color .15s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  border:none;background:transparent;width:calc(100% - 12px);text-align:left;
+}
+.nav-item i{font-size:18px;flex-shrink:0;color:var(--purple3);}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff;}
+.nav-item.active{background:var(--sidebar-active);color:#fff;}
+.nav-item .nav-tag{
+  margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:.4px;
+  background:rgba(169,143,220,.2);color:var(--purple4);
+  padding:2px 6px;border-radius:3px;flex-shrink:0;
+}
+
+.sidebar-divider{height:1px;background:var(--sidebar-border);margin:6px 14px;}
+
+/* ── MAIN CONTENT ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Header bar */
+.topbar{
+  height:var(--header-h);flex-shrink:0;
+  background:var(--sidebar-bg);
+  border-bottom:1px solid var(--sidebar-border);
+  display:flex;align-items:center;gap:10px;padding:0 18px;
+}
+.topbar-toggle{
+  background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;
+  color:rgba(255,255,255,.6);transition:color .15s, background .15s;
+}
+.topbar-toggle:hover{background:rgba(255,255,255,.08);color:#fff;}
+.topbar-toggle i{font-size:20px;display:block;}
+
+.search-wrap{flex:1;max-width:360px;position:relative;}
+.search-wrap i{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  font-size:16px;color:rgba(255,255,255,.35);pointer-events:none;
+}
+.search-input{
+  width:100%;height:34px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  color:#fff;font-family:var(--font);font-size:13.5px;
+  padding:0 12px 0 34px;
+  outline:none;transition:border-color .15s, background .15s;
+}
+.search-input::placeholder{color:rgba(255,255,255,.35);}
+.search-input:focus{background:rgba(255,255,255,.12);border-color:var(--purple3);}
+
+.topbar-hint{font-size:11.5px;color:rgba(255,255,255,.3);margin-left:4px;
+  white-space:nowrap;display:none;}
+@media(min-width:640px){.topbar-hint{display:block;}}
+
+.topbar-spacer{flex:1;}
+.topbar-brand{font-size:13px;font-weight:700;color:rgba(255,255,255,.55);
+  display:none;white-space:nowrap;}
+
+/* Content scroll area */
+.content{flex:1;overflow-y:auto;padding:28px 28px 48px;scrollbar-width:thin;
+  scrollbar-color:var(--border) transparent;}
+
+/* ── HOME VIEW ── */
+.home-hero{margin-bottom:28px;}
+.home-hero h1{
+  font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.4px;
+  margin-bottom:4px;
+}
+.home-hero p{font-size:14px;color:var(--ink-soft);max-width:560px;}
+
+.section-label{
+  font-size:11px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--ink-soft);margin-bottom:14px;padding-bottom:8px;
+  border-bottom:1px solid var(--border);
+}
+
+.tool-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:12px;
+  margin-bottom:32px;
+}
+
+.tool-card{
+  background:var(--card-bg);
+  border:2px solid var(--card-border);
+  border-radius:var(--radius);
+  padding:18px 18px 16px;
+  cursor:pointer;
+  transition:border-color .2s, box-shadow .2s, transform .1s;
+  display:flex;flex-direction:column;gap:10px;
+  text-decoration:none;color:inherit;
+}
+.tool-card:hover{
+  border-color:var(--card-hover-border);
+  box-shadow:0 4px 20px rgba(107,74,176,.12);
+  transform:translateY(-1px);
+}
+.tool-card:active{transform:translateY(0);}
+
+.tool-card-top{display:flex;align-items:flex-start;justify-content:space-between;}
+.tool-card-icon{
+  width:44px;height:44px;border-radius:10px;
+  background:var(--purple-pale);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.tool-card-icon i{font-size:26px;color:var(--purple);}
+
+.tool-tag{
+  font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+  padding:3px 8px;border-radius:4px;
+}
+.tag-stk{background:var(--tag-stk-bg);color:var(--tag-stk);}
+.tag-sep{background:var(--tag-sep-bg);color:var(--tag-sep);}
+.tag-bh{background:var(--tag-bh-bg);color:var(--tag-bh);}
+.tag-ref{background:var(--tag-ref-bg);color:var(--tag-ref);}
+
+.tool-card-name{font-size:15px;font-weight:700;color:var(--ink);line-height:1.3;}
+.tool-card-desc{font-size:12.5px;color:var(--ink-soft);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.tool-card-link{
+  font-size:12px;font-weight:600;color:var(--purple);
+  display:flex;align-items:center;gap:4px;margin-top:auto;
+}
+.tool-card-link i{font-size:14px;}
+
+/* ── QUICK LINKS ── */
+.quick-links{background:var(--card-bg);border:2px solid var(--card-border);border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:28px;}
+.quick-links-hdr{display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:6px;margin-bottom:11px;}
+.quick-links-title{font-size:12.5px;font-weight:700;letter-spacing:.3px;color:var(--tag-ref);
+  display:flex;align-items:center;gap:6px;}
+.quick-links-title i{font-size:16px;}
+.quick-links-verified{font-size:10.5px;color:var(--ink-soft);font-family:var(--mono);}
+.quick-links-row{display:flex;flex-wrap:wrap;gap:9px;}
+.quick-link-pill{display:flex;align-items:center;gap:8px;background:var(--tag-ref-bg);
+  color:var(--tag-ref);font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:8px;
+  text-decoration:none;border:1px solid transparent;transition:border-color .15s,transform .1s;}
+.quick-link-pill:hover{border-color:var(--tag-ref);transform:translateY(-1px);}
+.quick-link-pill i{font-size:15px;flex-shrink:0;}
+.ql-sub{font-size:10.5px;font-weight:500;opacity:.72;font-family:var(--mono);}
+
+/* ── TOOL VIEWER PANEL ── */
+.tool-panel{
+  position:fixed;inset:0;
+  background:var(--canvas);
+  z-index:100;
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+.tool-panel.open{transform:translateX(0);}
+
+.panel-header{
+  height:var(--header-h);flex-shrink:0;
+  background:var(--sidebar-bg);
+  display:flex;align-items:center;gap:10px;
+  padding:0 16px;
+  border-bottom:1px solid var(--sidebar-border);
+}
+.panel-back{
+  background:none;border:none;cursor:pointer;
+  padding:6px 8px;border-radius:6px;
+  display:flex;align-items:center;gap:6px;
+  color:rgba(255,255,255,.7);font-family:var(--font);font-size:13.5px;
+  transition:color .15s, background .15s;
+}
+.panel-back:hover{background:rgba(255,255,255,.1);color:#fff;}
+.panel-back i{font-size:18px;}
+
+.panel-title{font-size:14px;font-weight:700;color:#fff;flex:1;}
+.panel-tag-wrap{margin-left:auto;}
+
+.panel-iframe{flex:1;border:none;width:100%;display:block;}
+
+/* ── EMPTY / NO RESULTS ── */
+.no-results{
+  padding:48px 0;text-align:center;color:var(--ink-soft);
+}
+.no-results i{font-size:36px;opacity:.4;display:block;margin-bottom:12px;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .sidebar{display:none;}
+  .topbar-brand{display:block;}
+  .content{padding:20px 16px 40px;}
+  .tool-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:400px){
+  .tool-grid{grid-template-columns:1fr;}
+}
+
+/* Focus */
+:focus-visible{outline:2px solid var(--purple3);outline-offset:2px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══ TOOL VIEWER PANEL ══ -->
+<div class="tool-panel" id="toolPanel" role="dialog" aria-modal="true" aria-label="Tool viewer">
+  <div class="panel-header">
+    <button class="panel-back" onclick="closePanel()" aria-label="Back to all tools">
+      <i class="ph ph-arrow-left"></i>
+      All tools
+    </button>
+    <div class="panel-title" id="panelTitle">Tool</div>
+    <div class="panel-tag-wrap" id="panelTag"></div>
+  </div>
+  <iframe class="panel-iframe" id="panelFrame" title="Tool" src="" allowfullscreen></iframe>
+</div>
+
+<!-- ══ MAIN LAYOUT ══ -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Tool categories">
+
+    <div class="brand">
+      <div class="brand-name">
+        <div class="brand-icon"><i class="ph-fill ph-desk"></i></div>
+        Tanni's Desk Tools
+      </div>
+      <div class="brand-sub">Core measure abstraction toolkit</div>
+    </div>
+
+    <nav class="nav-section">
+      <div class="nav-section-label">All tools</div>
+      <button class="nav-item active" onclick="filterTools('all')" id="nav-all">
+        <i class="ph ph-squares-four"></i> All tools <span class="nav-tag">5</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <nav class="nav-section">
+      <div class="nav-section-label">Stroke (STK)</div>
+      <button class="nav-item" onclick="filterTools('stk')" id="nav-stk">
+        <i class="ph ph-brain"></i> STK Tools <span class="nav-tag">3</span>
+      </button>
+      <button class="nav-item" onclick="openTool('stk-med')" id="navbtn-stk-med">
+        <i class="ph ph-pill"></i> Med Identifier
+      </button>
+      <button class="nav-item" onclick="openTool('lkw')" id="navbtn-lkw">
+        <i class="ph ph-clock-countdown"></i> LKW Tool
+      </button>
+      <button class="nav-item" onclick="openTool('cmo')" id="navbtn-cmo">
+        <i class="ph ph-heart-straight"></i> CMO Tool
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <nav class="nav-section">
+      <div class="nav-section-label">Sepsis (SEP)</div>
+      <button class="nav-item" onclick="openTool('sep1')" id="navbtn-sep1">
+        <i class="ph ph-chart-line-up"></i> SEP-1 Time Zero
+      </button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <nav class="nav-section">
+      <div class="nav-section-label">Behavioral Health</div>
+      <button class="nav-item" onclick="openTool('hbips')" id="navbtn-hbips">
+        <i class="ph ph-chat-circle-dots"></i> HBIPS Tool
+      </button>
+    </nav>
+
+
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <button class="topbar-toggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+        <i class="ph ph-list"></i>
+      </button>
+
+      <div class="search-wrap">
+        <i class="ph ph-magnifying-glass"></i>
+        <input class="search-input" type="text" id="searchInput"
+          placeholder="Search tools…" aria-label="Search tools"
+          oninput="searchTools(this.value)">
+      </div>
+
+      <span class="topbar-hint">Press / to search</span>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-brand">🔮 Tanni's Desk Tools</div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="content" id="mainContent">
+
+      <div class="home-hero" id="homeHero">
+        <h1>Tanni's Desk Tools</h1>
+        <p>Core measure abstraction tools for STK, SEP-1, and behavioral health measures. Open any tool — it runs right here in the same window.</p>
+      </div>
+
+      <div class="quick-links" id="quickLinks">
+        <div class="quick-links-hdr">
+          <span class="quick-links-title"><i class="ph ph-link"></i> Official spec quick links</span>
+          <span class="quick-links-verified">Links verified 2026-06-18</span>
+        </div>
+        <div class="quick-links-row">
+          <a class="quick-link-pill" href="https://www.jointcommission.org/measurement/specification-manuals/chart-abstracted-measures/" target="_blank" rel="noopener">
+            <i class="ph ph-arrow-square-out"></i> TJC Specifications Manual <span class="ql-sub">STK · HBIPS · ASR-IP</span>
+          </a>
+          <a class="quick-link-pill" href="https://qualitynet.cms.gov/inpatient/specifications-manuals" target="_blank" rel="noopener">
+            <i class="ph ph-arrow-square-out"></i> CMS Inpatient Specs Manual <span class="ql-sub">SEP-1</span>
+          </a>
+          <a class="quick-link-pill" href="https://ecqi.healthit.gov" target="_blank" rel="noopener">
+            <i class="ph ph-arrow-square-out"></i> eCQI Resource Center <span class="ql-sub">eCQMs · value sets</span>
+          </a>
+        </div>
+      </div>
+
+      <div id="allSection">
+        <div class="section-label" id="sectionLabel">All the tools</div>
+        <div class="tool-grid" id="toolGrid"></div>
+      </div>
+
+      <div class="no-results" id="noResults" style="display:none;">
+        <i class="ph ph-magnifying-glass"></i>
+        <p>No tools match that search.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TOOL REGISTRY ──
+const TOOLS = [
+  {
+    id: 'stk-med',
+    name: 'STK Med Identifier',
+    desc: 'Paste discharge medication list and the tool sorts each med into its stroke measure category: antithrombotic, anticoagulant, statin, or VTE prophylaxis — per TJC Appendix C v2025A.',
+    icon: 'ph-pill',
+    tag: 'STK',
+    tagClass: 'tag-stk',
+    category: 'stk',
+    src: 'Tanni-stk-med-identifier-work.html',
+    color: '#6b4ab0',
+  },
+  {
+    id: 'lkw',
+    name: 'LKW Resolution Tool',
+    desc: 'Enter chart findings to resolve Last Known Well date, time, and Y/N values using TJC v2026B priority rules. Includes a practice quiz and case walkthroughs.',
+    icon: 'ph-clock-countdown',
+    tag: 'STK-4',
+    tagClass: 'tag-stk',
+    category: 'stk',
+    src: 'lkw-tool.html',
+  },
+  {
+    id: 'cmo',
+    name: 'CMO Abstraction Tool',
+    desc: 'Classify Comfort Measures Only denominator exclusions. Case classifier, guided workflow, quick reference, and practice quiz per TJC STK-6 / ASR-IP specs.',
+    icon: 'ph-heart-straight',
+    tag: 'STK-6',
+    tagClass: 'tag-stk',
+    category: 'stk',
+    src: 'cmo-tool.html',
+  },
+  {
+    id: 'sep1',
+    name: 'SEP-1 Time Zero',
+    desc: 'Enter clinical events and the tool auto-detects SIRS, organ dysfunction, and bundle elements — then suggests Time Zero (SSPT) with step-by-step reasoning.',
+    icon: 'ph-chart-line-up',
+    tag: 'SEP-1',
+    tagClass: 'tag-sep',
+    category: 'sep',
+    src: 'sep1-tool.html',
+  },
+  {
+    id: 'hbips',
+    name: 'HBIPS Tool',
+    desc: 'Behavioral health inpatient measure abstraction tool. Covers HBIPS-2 through HBIPS-5 with guided workflows, exclusion classifiers, and quick reference.',
+    icon: 'ph-chat-circle-dots',
+    tag: 'HBIPS',
+    tagClass: 'tag-bh',
+    category: 'bh',
+    src: 'hbips-tool.html',
+  },
+
+];
+
+// ── RENDER TOOL CARDS ──
+function renderCards(tools) {
+  const grid = document.getElementById('toolGrid');
+  const noResults = document.getElementById('noResults');
+  if (!tools.length) {
+    grid.innerHTML = '';
+    noResults.style.display = 'block';
+    return;
+  }
+  noResults.style.display = 'none';
+  grid.innerHTML = tools.map(t => `
+    <div class="tool-card" onclick="openTool('${t.id}')" tabindex="0" role="button"
+      onkeydown="if(event.key==='Enter'||event.key===' ')openTool('${t.id}')"
+      aria-label="Open ${t.name}">
+      <div class="tool-card-top">
+        <div class="tool-card-icon"><i class="ph-duotone ${t.icon}"></i></div>
+        <span class="tool-tag ${t.tagClass}">${t.tag}</span>
+      </div>
+      <div class="tool-card-name">${t.name}</div>
+      <div class="tool-card-desc">${t.desc}</div>
+      <span class="tool-card-link">Open tool <i class="ph ph-arrow-right"></i></span>
+    </div>
+  `).join('');
+}
+
+// Initial render
+renderCards(TOOLS);
+
+// ── FILTER ──
+let currentFilter = 'all';
+
+function filterTools(cat) {
+  currentFilter = cat;
+  // Update nav active state
+  document.querySelectorAll('.nav-item[id^="nav-"]').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + cat);
+  if (navEl) navEl.classList.add('active');
+
+  const filtered = cat === 'all' ? TOOLS : TOOLS.filter(t => t.category === cat);
+  const label = {
+    all: 'All the tools',
+    stk: 'Stroke (STK) tools',
+    sep: 'Sepsis (SEP-1) tools',
+    bh: 'Behavioral Health (HBIPS) tools',
+  };
+  document.getElementById('sectionLabel').textContent = label[cat] || 'Tools';
+  document.getElementById('homeHero').style.display = cat === 'all' ? '' : 'none';
+  document.getElementById('quickLinks').style.display = cat === 'all' ? '' : 'none';
+  renderCards(filtered);
+  // clear search
+  document.getElementById('searchInput').value = '';
+}
+
+// ── SEARCH ──
+function searchTools(q) {
+  const query = q.toLowerCase().trim();
+  if (!query) { filterTools(currentFilter); return; }
+  document.querySelectorAll('.nav-item[id^="nav-"]').forEach(el => el.classList.remove('active'));
+  document.getElementById('sectionLabel').textContent = `Results for "${q}"`;
+  document.getElementById('homeHero').style.display = 'none';
+  document.getElementById('quickLinks').style.display = 'none';
+  const filtered = TOOLS.filter(t =>
+    t.name.toLowerCase().includes(query) ||
+    t.desc.toLowerCase().includes(query) ||
+    t.tag.toLowerCase().includes(query) ||
+    t.category.toLowerCase().includes(query)
+  );
+  renderCards(filtered);
+}
+
+// Keyboard shortcut: / to focus search
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+  if (e.key === 'Escape') {
+    const panel = document.getElementById('toolPanel');
+    if (panel.classList.contains('open')) closePanel();
+  }
+});
+
+// ── TOOL PANEL ──
+function openTool(id) {
+  const tool = TOOLS.find(t => t.id === id);
+  if (!tool) return;
+  const panel = document.getElementById('toolPanel');
+  document.getElementById('panelTitle').textContent = tool.name;
+  document.getElementById('panelTag').innerHTML =
+    `<span class="tool-tag ${tool.tagClass}">${tool.tag}</span>`;
+  document.getElementById('panelFrame').src = tool.src;
+  panel.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Highlight nav
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const navBtn = document.getElementById('navbtn-' + id);
+  if (navBtn) navBtn.classList.add('active');
+}
+
+function closePanel() {
+  const panel = document.getElementById('toolPanel');
+  panel.classList.remove('open');
+  document.body.style.overflow = '';
+  // Stop iframe from playing/loading
+  setTimeout(() => { document.getElementById('panelFrame').src = ''; }, 300);
+  // Restore nav
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nav-' + currentFilter)?.classList.add('active');
+}
+
+// ── SIDEBAR TOGGLE ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+</script>
+</body>
+</html>
