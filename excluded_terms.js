@@ -45,4 +45,10 @@ const EXCLUDED_TERMS = [
   'misc',
   'intramuscular',
   'by misc route',
+  'at',
+  'at dinner time and then',
+  'mouth',
+  'sig takes',
+  'takes',
+  'then once before bed',
 ];
