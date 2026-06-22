@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Audit Trail — Tanni's Desk Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/duotone/style.css">
+<script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --purple:#6b4ab0; --purple2:#8b6fcc; --purple3:#a98fdc;
+  --purple4:#c4adec; --purple-pale:#f3f0ff; --purple-mid:#ddd4f8; --purple-deep:#3a2070;
+  --canvas:#f5f3ff; --card-bg:#ffffff; --card-border:#e8e3f8;
+  --card-hover-border:#a98fdc; --ink:#160e2c; --ink-mid:#3d2f6b; --ink-soft:#7a6fa0;
+  --border:#ddd4f8;
+  --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
+  --radius:10px;
+  --green:#166534; --red:#9b1c1c; --amber:#8a5200; --blue:#1d6fa4;
+}
+body{background:var(--canvas);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+
+header{position:sticky;top:0;z-index:200;background:var(--purple);border-bottom:1px solid rgba(255,255,255,.12);padding:12px 20px;display:flex;align-items:center;gap:14px;}
+.hbadge{background:rgba(255,255,255,.2);color:white;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;letter-spacing:.1em;white-space:nowrap;}
+.htitle{font-size:15px;font-weight:700;color:white;}
+.hsub{font-size:11px;color:rgba(255,255,255,.65);font-family:var(--mono);}
+
+main{max-width:680px;margin:0 auto;padding:24px 20px 60px;}
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;}
+.card-label{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--purple);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;}
+.sh{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.ss{font-size:13px;color:var(--ink-soft);margin-bottom:18px;}
+
+.size-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px;}
+.size-card{background:var(--purple-pale);border:2px solid var(--purple-mid);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,transform .1s;}
+.size-card:hover{border-color:var(--purple3);transform:translateY(-1px);}
+.size-card .dim{font-size:22px;font-weight:700;color:var(--purple);margin-bottom:4px;}
+.size-card .desc{font-size:12px;color:var(--ink-soft);}
+
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.hud-stat{font-family:var(--mono);font-size:13px;color:var(--ink-mid);background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 13px;}
+.hud-stat b{color:var(--purple);font-size:15px;}
+.hud-progress{flex:1;min-width:140px;height:10px;background:var(--purple-pale);border-radius:6px;overflow:hidden;border:1px solid var(--purple-mid);}
+.hud-progress-fill{height:100%;background:linear-gradient(90deg,var(--purple3),var(--purple));border-radius:6px;transition:width .3s ease;}
+
+.btn{background:var(--purple);color:#fff;border:none;font-family:var(--font);font-size:14px;font-weight:700;padding:11px 20px;border-radius:var(--radius);cursor:pointer;transition:background .18s;display:inline-flex;align-items:center;gap:8px;}
+.btn:hover{background:var(--purple-deep);}
+.btn.ghost{background:#fff;color:var(--purple);border:1.5px solid var(--purple-mid);}
+.btn.ghost:hover{background:var(--purple-pale);}
+.btn.sm{padding:7px 14px;font-size:12.5px;}
+
+.board-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.board{display:grid;gap:5px;background:var(--purple-deep);border-radius:14px;padding:8px;box-shadow:0 8px 24px rgba(58,32,112,.25);}
+
+.cell{position:relative;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;}
+.gem{
+  position:relative;width:88%;height:88%;border-radius:20%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .12s ease;
+}
+.gem::before{
+  content:'';position:absolute;top:8%;left:10%;width:34%;height:22%;
+  background:radial-gradient(ellipse at center, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 75%);
+  border-radius:50%;pointer-events:none;
+}
+.gem i{position:relative;z-index:2;color:rgba(255,255,255,.92);font-size:var(--gem-icon-size, 30px);filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));}
+.gem.selected{transform:scale(1.1);box-shadow:0 0 0 3px #fff, 0 0 14px rgba(255,255,255,.6);}
+.gem.clearing{animation:gemPop .32s ease forwards;}
+@keyframes gemPop{to{transform:scale(0);opacity:0;}}
+.gem.falling{animation:none;}
+
+.g-purple{ box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(139,111,204,.5); background:linear-gradient(150deg,#c4adec 0%,#8b6fcc 45%,#6b4ab0 100%); }
+.g-blue  { box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(29,111,164,.5); background:linear-gradient(150deg,#8fc4e8 0%,#3a8fc4 45%,#1d6fa4 100%); }
+.g-green { box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(26,122,74,.5); background:linear-gradient(150deg,#8fe0b3 0%,#3eb87d 45%,#1a7a4a 100%); }
+.g-amber { box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(160,90,26,.5); background:linear-gradient(150deg,#e8b07f 0%,#c47a3a 45%,#a05a1a 100%); }
+.g-pink  { box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(160,26,107,.5); background:linear-gradient(150deg,#ed93b8 0%,#d4548f 45%,#a01a6b 100%); }
+.g-red   { box-shadow:inset 0 3px 0 rgba(255,255,255,.5),inset 0 -6px 10px rgba(0,0,0,.28),0 4px 10px rgba(0,0,0,.25),0 0 16px rgba(180,40,40,.5); background:linear-gradient(150deg,#f0a3a3 0%,#d65c5c 45%,#b42828 100%); }
+
+.win-banner{text-align:center;padding:24px 16px;}
+.win-banner .big{font-size:40px;margin-bottom:8px;}
+.win-banner h3{font-size:19px;color:var(--ink);margin-bottom:6px;}
+.win-banner p{font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;}
+
+.fade-ready{opacity:0;transition:opacity .2s;}
+.fade-ready.ready{opacity:1;}
+
+.hidden{display:none !important;}
+
+.cx{border-radius:var(--radius);padding:11px 14px;margin:10px 0;display:flex;gap:10px;font-size:13px;line-height:1.55;}
+.cx-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
+.cx.tip{background:var(--purple-pale);border-left:3px solid var(--purple2);color:var(--ink-mid);}
+
+footer.site-footer{max-width:680px;margin:0 auto;padding:20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);}
+footer.site-footer a{color:var(--purple);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="hbadge">GAME</span>
+  <div>
+    <div class="htitle">Audit Trail</div>
+    <div class="hsub">Match 3 or more · a quiet break between cases</div>
+  </div>
+</header>
+
+<main id="mainContent">
+
+  <div id="screen-pick" class="fade-ready">
+    <div class="card">
+      <div class="card-label">Choose a board</div>
+      <div class="sh">Pick your board size</div>
+      <div class="ss">Small boards clear faster. Large boards have more room for big cascades.</div>
+      <div class="size-grid">
+        <div class="size-card" onclick="startGame(6)">
+          <div class="dim">6 &times; 6</div>
+          <div class="desc">Small — quicker rounds</div>
+        </div>
+        <div class="size-card" onclick="startGame(8)">
+          <div class="dim">8 &times; 8</div>
+          <div class="desc">Standard — more cascades</div>
+        </div>
+      </div>
+    </div>
+    <div class="cx tip">
+      <span class="cx-icon"><i class="ph-duotone ph-lightbulb"></i></span>
+      <div>Click a gem, then click an adjacent gem to swap. No timer, no losing — just clear rounds at your own pace.</div>
+    </div>
+  </div>
+
+  <div id="screen-game" class="hidden">
+    <div class="hud">
+      <div class="hud-stat">Round <b id="hud-round">1</b></div>
+      <div class="hud-progress"><div class="hud-progress-fill" id="hud-progress-fill" style="width:0%;"></div></div>
+      <div class="hud-stat"><b id="hud-score">0</b> / <span id="hud-target">1000</span></div>
+      <button class="btn ghost sm" onclick="exitToPicker()"><i class="ph ph-arrow-left"></i> Change board</button>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board" id="board"></div>
+    </div>
+
+    <div class="win-banner hidden" id="win-banner">
+      <div class="big">🎉</div>
+      <h3>Round cleared!</h3>
+      <p id="win-text"></p>
+      <button class="btn" onclick="nextRound()">Next round <i class="ph ph-arrow-right"></i></button>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <span>Tanni's Desk Tools</span>
+  <a href="tannis-desk-tools.html">← Back to hub</a>
+</footer>
+
+<script>
+// ── AUDIT TRAIL ENGINE ──
+// Pure logic, no DOM. 6 gem types (indices 0-5).
+
+const GEM_COUNT = 6;
+
+function randGem(rng) {
+  return Math.floor((rng ? rng() : Math.random()) * GEM_COUNT);
+}
+
+function makeEmptyBoard(size) {
+  return Array.from({ length: size }, () => Array(size).fill(null));
+}
+
+// Find all matches currently on the board.
+// Returns an array of match groups, each group = array of {r,c} coordinates.
+function findMatches(board, size) {
+  const matched = Array.from({ length: size }, () => Array(size).fill(false));
+
+  // horizontal runs
+  for (let r = 0; r < size; r++) {
+    let runStart = 0;
+    for (let c = 1; c <= size; c++) {
+      const same = c < size && board[r][c] !== null && board[r][c] === board[r][runStart];
+      if (!same) {
+        const runLen = c - runStart;
+        if (runLen >= 3) {
+          for (let k = runStart; k < c; k++) matched[r][k] = true;
+        }
+        runStart = c;
+      }
+    }
+  }
+
+  // vertical runs
+  for (let c = 0; c < size; c++) {
+    let runStart = 0;
+    for (let r = 1; r <= size; r++) {
+      const same = r < size && board[r][c] !== null && board[r][c] === board[runStart][c];
+      if (!same) {
+        const runLen = r - runStart;
+        if (runLen >= 3) {
+          for (let k = runStart; k < r; k++) matched[k][c] = true;
+        }
+        runStart = r;
+      }
+    }
+  }
+
+  const cells = [];
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (matched[r][c]) cells.push({ r, c });
+    }
+  }
+  return cells; // flat list of all matched cells (de-duped by construction)
+}
+
+// Would placing `gem` at (r,c) create an immediate match? Used during board generation
+// to avoid spawning a pre-solved board.
+function wouldMatch(board, size, r, c, gem) {
+  // check horizontal
+  let countLeft = 0;
+  for (let cc = c - 1; cc >= 0 && board[r][cc] === gem; cc--) countLeft++;
+  let countRight = 0;
+  // (no cells to the right yet during left-to-right top-to-bottom fill, but keep general)
+  if (countLeft >= 2) return true;
+
+  // check vertical
+  let countUp = 0;
+  for (let rr = r - 1; rr >= 0 && board[rr][c] === gem; rr--) countUp++;
+  if (countUp >= 2) return true;
+
+  return false;
+}
+
+function generateBoard(size, rng) {
+  const board = makeEmptyBoard(size);
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      let gem;
+      let attempts = 0;
+      do {
+        gem = randGem(rng);
+        attempts++;
+      } while (wouldMatch(board, size, r, c, gem) && attempts < 50);
+      board[r][c] = gem;
+    }
+  }
+  return board;
+}
+
+// Apply gravity: gems fall down to fill nulls, new random gems spawn at top.
+function applyGravity(board, size, rng) {
+  for (let c = 0; c < size; c++) {
+    // collect non-null gems in this column, bottom-up
+    const col = [];
+    for (let r = size - 1; r >= 0; r--) {
+      if (board[r][c] !== null) col.push(board[r][c]);
+    }
+    // refill from bottom with existing gems, then fill remaining top cells with new gems
+    for (let r = size - 1; r >= 0; r--) {
+      const idx = size - 1 - r;
+      if (idx < col.length) {
+        board[r][c] = col[idx];
+      } else {
+        board[r][c] = randGem(rng);
+      }
+    }
+  }
+}
+
+function cloneBoard(board) {
+  return board.map(row => row.slice());
+}
+
+// Check if swapping (r1,c1) and (r2,c2) would create a match. Cells must be adjacent.
+function isAdjacent(r1, c1, r2, c2) {
+  const dr = Math.abs(r1 - r2), dc = Math.abs(c1 - c2);
+  return (dr === 1 && dc === 0) || (dr === 0 && dc === 1);
+}
+
+function trySwap(board, size, r1, c1, r2, c2) {
+  if (!isAdjacent(r1, c1, r2, c2)) return { valid: false };
+  const test = cloneBoard(board);
+  const tmp = test[r1][c1];
+  test[r1][c1] = test[r2][c2];
+  test[r2][c2] = tmp;
+  const matches = findMatches(test, size);
+  if (matches.length === 0) return { valid: false };
+  return { valid: true, board: test, matches };
+}
+
+// Does ANY valid move exist on this board? (avoid unwinnable/deadlock boards)
+function hasValidMove(board, size) {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      if (c + 1 < size && trySwap(board, size, r, c, r, c + 1).valid) return true;
+      if (r + 1 < size && trySwap(board, size, r, c, r + 1, c).valid) return true;
+    }
+  }
+  return false;
+}
+
+// Resolve a full cascade starting from a board that already has a swap applied.
+// Returns { finalBoard, cascadeSteps } where cascadeSteps is an array of
+// { clearedCells: [{r,c,gem}], comboIndex } for animation/scoring purposes.
+function resolveCascade(board, size, rng) {
+  let current = cloneBoard(board);
+  const cascadeSteps = [];
+  let comboIndex = 0;
+  const MAX_CASCADE_STEPS = 50; // safety cap: real games resolve in well under 10 steps
+
+  while (comboIndex < MAX_CASCADE_STEPS) {
+    const matches = findMatches(current, size);
+    if (matches.length === 0) break;
+
+    const clearedCells = matches.map(({ r, c }) => ({ r, c, gem: current[r][c] }));
+    cascadeSteps.push({ clearedCells, comboIndex });
+
+    for (const { r, c } of matches) current[r][c] = null;
+    applyGravity(current, size, rng);
+    comboIndex++;
+  }
+
+  return { finalBoard: current, cascadeSteps };
+}
+
+function scoreForStep(step) {
+  const n = step.clearedCells.length;
+  // base points per gem, scaled up for bigger matches, multiplied by combo step
+  const base = n >= 5 ? 50 : n === 4 ? 30 : 20; // per-gem base scales with match size
+  const comboMultiplier = 1 + step.comboIndex * 0.5; // 1x, 1.5x, 2x, 2.5x...
+  return Math.round(n * base * comboMultiplier);
+}
+
+function reshuffleUntilPlayable(size, rng, maxAttempts) {
+  let board;
+  let attempts = 0;
+  do {
+    board = generateBoard(size, rng);
+    attempts++;
+  } while (!hasValidMove(board, size) && attempts < (maxAttempts || 20));
+  return board;
+}
+
+
+// ── AUDIT TRAIL — GAME UI ──
+
+const GEM_CLASSES = ['g-purple', 'g-blue', 'g-green', 'g-amber', 'g-pink', 'g-red'];
+const GEM_ICONS = ['ph-brain', 'ph-flask', 'ph-pill', 'ph-bandaids', 'ph-heartbeat', 'ph-first-aid-kit'];
+
+let gameState = null;
+let _fontsReady = false;
+
+function startGame(size) {
+  if (!_fontsReady) {
+    // font may not have finished loading yet — wait, then retry once ready
+    whenFontsReady(() => startGame(size));
+    return;
+  }
+
+  document.getElementById('screen-pick').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+
+  const board = reshuffleUntilPlayable(size, Math.random, 30);
+  gameState = {
+    size,
+    board,
+    round: 1,
+    score: 0,
+    target: targetForRound(1),
+    selected: null,
+    busy: false, // true while a cascade animation is resolving, blocks input
+  };
+
+  renderBoardStructure();
+  renderBoardGems();
+  updateHud();
+}
+
+function targetForRound(round) {
+  // round 1 = 1000, each subsequent round +400 (gentle ramp, not punishing)
+  return 1000 + (round - 1) * 400;
+}
+
+function exitToPicker() {
+  document.getElementById('screen-pick').classList.remove('hidden');
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('win-banner').classList.add('hidden');
+  gameState = null;
+}
+
+function renderBoardStructure() {
+  const el = document.getElementById('board');
+  el.style.gridTemplateColumns = `repeat(${gameState.size}, 1fr)`;
+  el.style.width = `min(480px, 92vw)`;
+  // Icon size scales with the actual rendered cell size, not a fixed pixel value,
+  // since the board's total width is fixed (480px max) while cell count varies —
+  // an 8x8 board has smaller cells than a 6x6 board, so icons must shrink to match.
+  const boardPx = Math.min(480, window.innerWidth * 0.92);
+  const cellPx = boardPx / gameState.size;
+  const iconPx = Math.round(cellPx * 0.46);
+  el.style.setProperty('--gem-icon-size', iconPx + 'px');
+  el.innerHTML = '';
+  for (let r = 0; r < gameState.size; r++) {
+    for (let c = 0; c < gameState.size; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      const gem = document.createElement('div');
+      gem.className = 'gem';
+      gem.innerHTML = '<i class="ph-duotone"></i>';
+      gem.addEventListener('click', () => onCellClick(r, c));
+      cell.appendChild(gem);
+      el.appendChild(cell);
+    }
+  }
+}
+
+function gemElAt(r, c) {
+  return document.querySelector(`.cell[data-r="${r}"][data-c="${c}"] .gem`);
+}
+
+function renderBoardGems() {
+  for (let r = 0; r < gameState.size; r++) {
+    for (let c = 0; c < gameState.size; c++) {
+      const gemIdx = gameState.board[r][c];
+      const el = gemElAt(r, c);
+      el.className = 'gem ' + GEM_CLASSES[gemIdx];
+      el.querySelector('i').className = 'ph-duotone ' + GEM_ICONS[gemIdx];
+    }
+  }
+}
+
+function updateHud() {
+  document.getElementById('hud-round').textContent = gameState.round;
+  document.getElementById('hud-score').textContent = gameState.score;
+  document.getElementById('hud-target').textContent = gameState.target;
+  const pct = Math.min(100, Math.round((gameState.score / gameState.target) * 100));
+  document.getElementById('hud-progress-fill').style.width = pct + '%';
+}
+
+function onCellClick(r, c) {
+  if (gameState.busy) return;
+
+  if (!gameState.selected) {
+    gameState.selected = { r, c };
+    gemElAt(r, c).classList.add('selected');
+    return;
+  }
+
+  const sel = gameState.selected;
+  if (sel.r === r && sel.c === c) {
+    // clicked the same cell again: deselect
+    gemElAt(r, c).classList.remove('selected');
+    gameState.selected = null;
+    return;
+  }
+
+  gemElAt(sel.r, sel.c).classList.remove('selected');
+
+  if (!isAdjacent(sel.r, sel.c, r, c)) {
+    // not adjacent: treat the new click as a fresh selection instead of an invalid swap
+    gameState.selected = { r, c };
+    gemElAt(r, c).classList.add('selected');
+    return;
+  }
+
+  gameState.selected = null;
+  attemptSwap(sel.r, sel.c, r, c);
+}
+
+function attemptSwap(r1, c1, r2, c2) {
+  const result = trySwap(gameState.board, gameState.size, r1, c1, r2, c2);
+  if (!result.valid) {
+    // invalid swap: brief shake feedback, no state change
+    const a = gemElAt(r1, c1), b = gemElAt(r2, c2);
+    [a, b].forEach(el => {
+      el.style.transition = 'transform .08s';
+      el.style.transform = 'translateX(-3px)';
+      setTimeout(() => { el.style.transform = 'translateX(3px)'; }, 80);
+      setTimeout(() => { el.style.transform = ''; }, 160);
+    });
+    return;
+  }
+
+  gameState.busy = true;
+  gameState.board = result.board;
+  gameState._comboIndex = 0;
+  renderBoardGems();
+
+  // Recompute the cascade step-by-step ourselves (rather than trusting resolveCascade's
+  // single final board) so we can render the true intermediate state after each step's
+  // gravity refill, and mark the correct cells as clearing at each stage.
+  playCascadeFromBoard(gameState.board);
+}
+
+function playCascadeFromBoard(board) {
+  const matches = findMatches(board, gameState.size);
+  if (matches.length === 0) {
+    gameState.board = board;
+    renderBoardGems();
+    gameState.busy = false;
+    checkRoundComplete();
+    return;
+  }
+
+  const comboIndex = gameState._comboIndex || 0;
+  const step = { clearedCells: matches.map(({ r, c }) => ({ r, c, gem: board[r][c] })), comboIndex };
+  const points = scoreForStep(step);
+  gameState.score += points;
+  updateHud();
+
+  matches.forEach(({ r, c }) => {
+    const el = gemElAt(r, c);
+    if (el) el.classList.add('clearing');
+  });
+
+  setTimeout(() => {
+    const next = cloneBoard(board);
+    for (const { r, c } of matches) next[r][c] = null;
+    applyGravity(next, gameState.size, Math.random);
+
+    gameState.board = next;
+    renderBoardGems();
+    gameState._comboIndex = comboIndex + 1;
+
+    // brief pause so the refill is visible before checking for a chain reaction
+    setTimeout(() => playCascadeFromBoard(next), 120);
+  }, 260);
+}
+
+function checkRoundComplete() {
+  if (gameState.score >= gameState.target) {
+    document.getElementById('win-text').textContent =
+      `You reached ${gameState.score} points in round ${gameState.round}.`;
+    document.getElementById('win-banner').classList.remove('hidden');
+    return;
+  }
+
+  // if no valid move remains, reshuffle silently (player keeps their score/progress)
+  if (!hasValidMove(gameState.board, gameState.size)) {
+    gameState.board = reshuffleUntilPlayable(gameState.size, Math.random, 30);
+    renderBoardGems();
+  }
+}
+
+function nextRound() {
+  document.getElementById('win-banner').classList.add('hidden');
+  gameState.round += 1;
+  gameState.score = 0;
+  gameState.target = targetForRound(gameState.round);
+  gameState.board = reshuffleUntilPlayable(gameState.size, Math.random, 30);
+  renderBoardGems();
+  updateHud();
+}
+
+// ── FONT LOAD GATE ──
+// Phosphor icon glyphs are rendered via :before/:after pseudo-element content, which
+// is computed at paint time. If an <i> element paints before the webfont has finished
+// downloading, the glyph never appears — even after the font loads later. So we must
+// wait for document.fonts.ready BEFORE creating/classing any icon element, not just
+// fade something in after the fact.
+function whenFontsReady(cb) {
+  if (_fontsReady) { cb(); return; }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { _fontsReady = true; cb(); });
+    // safety fallback in case fonts.ready resolves later than expected on some browsers
+    setTimeout(() => { if (!_fontsReady) { _fontsReady = true; cb(); } }, 800);
+  } else {
+    _fontsReady = true;
+    cb();
+  }
+}
+
+function revealWhenReady() {
+  const el = document.getElementById('screen-pick');
+  whenFontsReady(() => el.classList.add('ready'));
+}
+revealWhenReady();
+
+</script>
+</body>
+</html>
